@@ -1,0 +1,40 @@
+{
+	acme_dns porkbun {
+		api_key {env.PORKBUN_API_KEY}
+		api_secret_key {env.PORKBUN_API_SECRET_KEY}
+	}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	@admin path /admin /admin/*
+	handle @admin {
+		respond 404
+	}
+
+	handle /login/* {
+		rate_limit {
+			zone login {
+				key {remote_host}
+				events 5
+				window 1m
+			}
+		}
+		reverse_proxy web:8000
+	}
+
+	handle {
+		rate_limit {
+			zone post {
+				match {
+					method POST
+				}
+				key {remote_host}
+				events 30
+				window 1m
+			}
+		}
+		reverse_proxy web:8000
+	}
+}

@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Header -->
+  <div class="header">
+    <span class="header-icon">🚗</span>
+    <h1>Odotracker</h1>
+    <form method="post" action="{% url 'logout' %}" class="logout-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-logout">Log out</button>
+    </form>
+  </div>
+
+  <!-- Current odometer -->
+  <div class="odo-card">
+    <div class="odo-label">Current Odometer</div>
+    <div class="odo-value">{{ current_km|default:"0" }}<span class="odo-unit">km</span></div>
+  </div>
+
+  <!-- Errors -->
+  {% if errors %}
+    <ul class="errors" id="form-errors">
+      {% for err in errors %}
+        <li>{{ err }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <!-- Toggle button for form -->
+  <button type="button" class="toggle-form{% if errors %} open{% endif %}" id="toggle-form">
+    <span>＋ New Entry</span>
+    <span class="chevron">▼</span>
+  </button>
+
+  <!-- Collapsible form -->
+  <div class="form-wrapper{% if errors %} open{% endif %}" id="form-wrapper">
+    <div>
+      <div class="card">
+        <form method="post" id="entry-form">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" placeholder="e.g. Oil change" required>
+          </div>
+
+          <div class="form-group">
+            <label for="kilometers">Kilometers</label>
+            <input id="kilometers" name="kilometers" type="text" inputmode="numeric" placeholder="Current odometer reading" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cost">Cost ($)</label>
+            <input id="cost" name="cost" type="number" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+
+          <div class="date-row">
+            <div class="form-group">
+              <label for="date_display">Date</label>
+              <input id="date_display" type="text" placeholder="dd/mm/yyyy HH:MM" required>
+              <input id="date" name="date" type="hidden">
+            </div>
+            <button type="button" class="btn btn-today" id="add-today">Now</button>
+          </div>
+
+          <div class="form-group">
+            <label for="reason">Reason / Notes</label>
+            <textarea id="reason" name="reason" placeholder="Optional details…"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Save Entry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent entries -->
+  <h2>Recent Entries</h2>
+
+  <div class="entries-list">
+    {% for e in entries %}
+      <div class="entry-card">
+        <div class="entry-info">
+          <div class="entry-name">{{ e.name }}</div>
+          <div class="entry-meta">
+            <span>📅 {{ e.date|date:"d M Y" }}</span>
+            <span>📏 {{ e.kilometers|floatformat:"0" }} km</span>
+            <span>💲 {{ e.cost|floatformat:"2" }}</span>
+          </div>
+          {% if e.reason %}
+            <div class="entry-meta" style="margin-top:2px">
+              <span>📝 {{ e.reason|truncatewords:12 }}</span>
+            </div>
+          {% endif %}
+        </div>
+        <div class="entry-actions">
+          <button type="button" class="btn btn-danger" onclick="confirmDelete({{ e.pk }}, '{{ e.name|escapejs }}')">Delete</button>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty-state">
+        <div class="empty-icon">🔧</div>
+        <p>No entries yet.<br>Add your first maintenance record above.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Delete confirmation overlay -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <p>Delete <strong id="confirm-name"></strong>?</p>
+      <div class="confirm-buttons">
+        <button type="button" class="btn btn-cancel" onclick="closeConfirm()">Cancel</button>
+        <form id="delete-form" method="post" style="flex:1;display:flex">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-confirm-delete" style="width:100%">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const km = document.getElementById('kilometers');
+  const dateDisplay = document.getElementById('date_display');
+  const dateHidden = document.getElementById('date');
+  const addToday = document.getElementById('add-today');
+  const form = document.getElementById('entry-form');
+  const toggleBtn = document.getElementById('toggle-form');
+  const formWrapper = document.getElementById('form-wrapper');
+
+  // --- Toggle form visibility ---
+  toggleBtn.addEventListener('click', function(){
+    toggleBtn.classList.toggle('open');
+    formWrapper.classList.toggle('open');
+  });
+
+  // --- Numeric-only for kilometers ---
+  km.addEventListener('input', function(){
+    this.value = (this.value || '').replace(/\D+/g,'');
+  });
+
+  function pad(n){return n<10? '0'+n : n}
+
+  // --- Add current date & time ---
+  addToday.addEventListener('click', function(){
+    const now = new Date();
+    const dd = pad(now.getDate());
+    const mm = pad(now.getMonth()+1);
+    const yyyy = now.getFullYear();
+    const hh = pad(now.getHours());
+    const mi = pad(now.getMinutes());
+    dateDisplay.value = dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + mi;
+    dateHidden.value = yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + mi;
+  });
+
+  // --- Date parsing on submit ---
+  form.addEventListener('submit', function(e){
+    const v = (dateDisplay.value || '').trim();
+    if(!v){ e.preventDefault(); alert('Date is required'); return; }
+    const parts = v.split(' ');
+    const d = parts[0].split('/');
+    if(d.length !== 3){ e.preventDefault(); alert('Invalid date format. Use dd/mm/yyyy'); return; }
+    const day = d[0], month = d[1], year = d[2];
+    const time = (parts[1] || '00:00');
+    if(!/^\d{1,2}:\d{2}$/.test(time)){ e.preventDefault(); alert('Invalid time. Use HH:MM'); return; }
+    dateHidden.value = year + '-' + (month.length===1? '0'+month: month) + '-' + (day.length===1? '0'+day: day) + 'T' + time;
+  });
+});
+
+// --- Delete confirmation ---
+function confirmDelete(pk, name){
+  document.getElementById('confirm-name').textContent = name;
+  document.getElementById('delete-form').action = '/delete/' + pk + '/';
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function closeConfirm(){
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+// Close on overlay click
+document.getElementById('confirm-overlay').addEventListener('click', function(e){
+  if(e.target === this) closeConfirm();
+});
+</script>
+
+{% endblock %}

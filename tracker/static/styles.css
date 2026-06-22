@@ -1,0 +1,356 @@
+/* ============================================================
+   Odotracker — Mobile-first stylesheet
+   ============================================================ */
+
+/* ---------- Reset & Base ---------- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:        #0f1117;
+  --surface:   #1a1d27;
+  --surface-2: #242836;
+  --border:    #2e3345;
+  --text:      #e4e6ef;
+  --text-dim:  #8b8fa3;
+  --accent:    #6c8cff;
+  --accent-hover:#8aa4ff;
+  --danger:    #ff6b6b;
+  --danger-hover:#ff8787;
+  --success:   #51cf66;
+  --warning:   #fcc419;
+  --radius:    12px;
+  --radius-sm: 8px;
+  --shadow:    0 2px 8px rgba(0,0,0,.35);
+  --font:      'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html{font-size:16px;-webkit-text-size-adjust:100%}
+
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.5;
+  min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+
+main{
+  max-width:480px;
+  margin:0 auto;
+  padding:16px 16px 80px;
+}
+
+/* ---------- Typography ---------- */
+h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em}
+h2{font-size:1.05rem;font-weight:600;color:var(--text-dim);letter-spacing:.02em;text-transform:uppercase;margin-bottom:12px}
+
+/* ---------- Header ---------- */
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:20px 0 8px;
+}
+.header-icon{font-size:1.5rem}
+
+/* ---------- Odometer Card ---------- */
+.odo-card{
+  background:linear-gradient(135deg, #2a2f47 0%, #1e2236 100%);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  margin:16px 0;
+  text-align:center;
+}
+.odo-label{
+  font-size:.75rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--text-dim);
+  margin-bottom:4px;
+}
+.odo-value{
+  font-size:2rem;
+  font-weight:700;
+  color:var(--accent);
+  font-variant-numeric:tabular-nums;
+}
+.odo-unit{
+  font-size:.9rem;
+  font-weight:400;
+  color:var(--text-dim);
+  margin-left:4px;
+}
+
+/* ---------- Error banner ---------- */
+.errors{
+  background:rgba(255,107,107,.12);
+  border:1px solid rgba(255,107,107,.3);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  margin-bottom:16px;
+  list-style:none;
+}
+.errors li{
+  color:var(--danger);
+  font-size:.875rem;
+  line-height:1.6;
+}
+.errors li::before{
+  content:'• ';
+}
+
+/* ---------- Card / Section ---------- */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+
+/* ---------- Form controls ---------- */
+label{
+  display:block;
+  font-size:.8rem;
+  font-weight:500;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:4px;
+}
+
+.form-group{margin-bottom:14px}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea{
+  width:100%;
+  padding:12px 14px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:1rem;
+  outline:none;
+  transition:border-color .15s;
+}
+input:focus,textarea:focus{
+  border-color:var(--accent);
+}
+textarea{
+  resize:vertical;
+  min-height:60px;
+}
+/* Chrome/Safari number spinners — hide */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+input[type="number"]{-moz-appearance:textfield}
+
+/* ---------- Inline date row ---------- */
+.date-row{
+  display:flex;
+  gap:8px;
+  align-items:flex-end;
+}
+.date-row .form-group{flex:1}
+.date-row .btn-today{
+  flex-shrink:0;
+  margin-bottom:14px;
+}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:12px 20px;
+  border:none;
+  border-radius:var(--radius-sm);
+  font-family:var(--font);
+  font-size:.9rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .15s, transform .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:active{transform:scale(.97)}
+
+.btn-primary{
+  width:100%;
+  background:var(--accent);
+  color:#fff;
+}
+.btn-primary:hover{background:var(--accent-hover)}
+
+.btn-today{
+  background:var(--surface-2);
+  color:var(--text-dim);
+  border:1px solid var(--border);
+  padding:12px 14px;
+  font-size:.8rem;
+  white-space:nowrap;
+}
+.btn-today:hover{background:var(--border)}
+
+.btn-danger{
+  background:transparent;
+  color:var(--danger);
+  padding:6px 10px;
+  font-size:.75rem;
+  border:1px solid rgba(255,107,107,.25);
+}
+.btn-danger:hover{background:rgba(255,107,107,.1)}
+
+/* ---------- Entries list ---------- */
+.entries-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.entry-card{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  box-shadow:var(--shadow);
+  transition:border-color .15s;
+}
+
+.entry-info{flex:1;min-width:0}
+
+.entry-name{
+  font-weight:600;
+  font-size:.95rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.entry-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 14px;
+  margin-top:4px;
+  font-size:.8rem;
+  color:var(--text-dim);
+}
+
+.entry-actions{flex-shrink:0}
+
+/* Empty state */
+.empty-state{
+  text-align:center;
+  padding:40px 20px;
+  color:var(--text-dim);
+}
+.empty-state .empty-icon{font-size:2.5rem;margin-bottom:8px}
+.empty-state p{font-size:.9rem}
+
+/* ---------- Section divider ---------- */
+.section-divider{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:20px 0;
+}
+
+/* ---------- Collapsible form toggle ---------- */
+.toggle-form{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width:100%;
+  padding:14px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:var(--radius);
+  font-family:var(--font);
+  font-size:.95rem;
+  font-weight:600;
+  cursor:pointer;
+  margin-bottom:16px;
+  transition:background .15s, transform .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.toggle-form:active{transform:scale(.97)}
+.toggle-form:hover{background:var(--accent-hover)}
+.toggle-form .chevron{
+  transition:transform .2s;
+  font-size:.7rem;
+}
+.toggle-form.open .chevron{transform:rotate(180deg)}
+
+.form-wrapper{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows .25s ease;
+}
+.form-wrapper.open{grid-template-rows:1fr}
+.form-wrapper > div{overflow:hidden}
+
+/* ---------- Confirm delete ---------- */
+.confirm-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:16px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .15s;
+}
+.confirm-overlay.show{opacity:1;pointer-events:auto}
+
+.confirm-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px;
+  max-width:320px;
+  width:100%;
+  text-align:center;
+}
+.confirm-box p{margin-bottom:16px;font-size:.95rem}
+
+.confirm-buttons{display:flex;gap:10px}
+.confirm-buttons .btn{flex:1}
+
+.btn-cancel{
+  background:var(--surface-2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+.btn-cancel:hover{background:var(--border)}
+.btn-confirm-delete{
+  background:var(--danger);
+  color:#fff;
+}
+.btn-confirm-delete:hover{background:var(--danger-hover)}
+
+/* ---------- Logout button ---------- */
+.logout-form{margin-left:auto}
+.btn-logout{
+  background:var(--surface-2);
+  color:var(--text-dim);
+  border:1px solid var(--border);
+  padding:8px 12px;
+  font-size:.8rem;
+}
+.btn-logout:hover{background:var(--border);color:var(--text)}

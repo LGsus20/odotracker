@@ -1,0 +1,18 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="theme-color" content="#0f1117">
+    <meta name="description" content="Track your car maintenance, costs, and odometer readings.">
+    <title>Odotracker</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link rel="icon" href="{% static 'icons8-car-32.png' %}">
+  </head>
+  <body>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

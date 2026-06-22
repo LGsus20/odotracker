@@ -1,3 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Env files
+.env
+.env.*
+
+# SQLite DB
+db.sqlite3
+
+# Django static files
+staticfiles/
+
+# Editor
+.vscode/
+.idea/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
