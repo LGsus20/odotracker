@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+  <!-- Header -->
+  <div class="header">
+    <span class="header-icon">🔧</span>
+    <h1>Maintenance</h1>
+    <a class="btn btn-nav" href="{% url 'index' %}">← Entries</a>
+    <a class="btn btn-nav" href="{% url 'report' %}">📊 Report</a>
+    <form method="post" action="{% url 'logout' %}" class="logout-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-logout">Log out</button>
+    </form>
+  </div>
+
+  <!-- Current odometer -->
+  <div class="odo-card">
+    <div class="odo-label">Current Odometer</div>
+    <div class="odo-value">{{ current_km|intcomma }}<span class="odo-unit">km</span></div>
+  </div>
+
+  <!-- Django messages -->
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="msg msg-{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <!-- Part form: add mode (collapsible) or edit mode (always open) -->
+  {% if editing_part %}
+    <div class="card">
+      <form method="post" action="{% url 'edit_part' editing_part.pk %}" novalidate>
+        {% csrf_token %}
+        {% if part_form.non_field_errors %}
+          <ul class="errors">
+            {% for err in part_form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        <div class="form-group{% if part_form.name.errors %} has-error{% endif %}">
+          <label for="part_name">Part name</label>
+          <input id="part_name" name="name" type="text" placeholder="e.g. Air filter"
+                 value="{{ part_form.name.value|default_if_none:"" }}">
+          {% for err in part_form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </div>
+        <div class="form-group{% if part_form.interval_km.errors %} has-error{% endif %}">
+          <label for="interval_km">Every … km (optional)</label>
+          <input id="interval_km" name="interval_km" type="text" inputmode="numeric" data-numeric
+                 placeholder="e.g. 15000" value="{{ part_form.interval_km.value|default_if_none:"" }}">
+          {% for err in part_form.interval_km.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </div>
+        <div class="form-group{% if part_form.interval_months.errors %} has-error{% endif %}">
+          <label for="interval_months">Every … months (optional)</label>
+          <input id="interval_months" name="interval_months" type="text" inputmode="numeric" data-numeric
+                 placeholder="e.g. 12" value="{{ part_form.interval_months.value|default_if_none:"" }}">
+          {% for err in part_form.interval_months.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save Part</button>
+        <a class="btn btn-cancel btn-block" href="{% url 'maintenance' %}">Cancel</a>
+      </form>
+    </div>
+  {% else %}
+    <button type="button" class="toggle-form{% if part_form.errors %} open{% endif %}"
+            id="toggle-part-form" data-target="part-form-wrapper">
+      <span>＋ Add Part</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="form-wrapper{% if part_form.errors %} open{% endif %}" id="part-form-wrapper">
+      <div>
+        <div class="card">
+          <form method="post" action="{% url 'maintenance' %}" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_part">
+            {% if part_form.non_field_errors %}
+              <ul class="errors">
+                {% for err in part_form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <div class="form-group{% if part_form.name.errors %} has-error{% endif %}">
+              <label for="part_name">Part name</label>
+              <input id="part_name" name="name" type="text" placeholder="e.g. Air filter"
+                     value="{{ part_form.name.value|default_if_none:"" }}">
+              {% for err in part_form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="form-group{% if part_form.interval_km.errors %} has-error{% endif %}">
+              <label for="interval_km">Every … km (optional)</label>
+              <input id="interval_km" name="interval_km" type="text" inputmode="numeric" data-numeric
+                     placeholder="e.g. 15000" value="{{ part_form.interval_km.value|default_if_none:"" }}">
+              {% for err in part_form.interval_km.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="form-group{% if part_form.interval_months.errors %} has-error{% endif %}">
+              <label for="interval_months">Every … months (optional)</label>
+              <input id="interval_months" name="interval_months" type="text" inputmode="numeric" data-numeric
+                     placeholder="e.g. 12" value="{{ part_form.interval_months.value|default_if_none:"" }}">
+              {% for err in part_form.interval_months.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">Save Part</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Log service form (only when at least one part exists) -->
+  {% if statuses and not editing_part %}
+    <button type="button" class="toggle-form{% if service_open %} open{% endif %}"
+            id="toggle-service-form" data-target="service-form-wrapper">
+      <span>🔧 Log Service</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="form-wrapper{% if service_open %} open{% endif %}" id="service-form-wrapper">
+      <div>
+        <div class="card">
+          <form method="post" action="{% url 'maintenance' %}" id="service-form" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="log_service">
+            {% if service_form.non_field_errors %}
+              <ul class="errors">
+                {% for err in service_form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <div class="form-group{% if service_form.part.errors %} has-error{% endif %}">
+              <label for="id_part">Part</label>
+              {{ service_form.part }}
+              {% for err in service_form.part.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="form-group{% if service_form.kilometers.errors %} has-error{% endif %}">
+              <label for="service_km">Kilometers</label>
+              <input id="service_km" name="kilometers" type="text" inputmode="numeric" data-numeric
+                     placeholder="Odometer at service" value="{{ service_form.kilometers.value|default_if_none:"" }}">
+              {% for err in service_form.kilometers.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="form-group{% if service_form.cost.errors %} has-error{% endif %}">
+              <label for="service_cost">Cost ($, optional)</label>
+              <input id="service_cost" name="cost" type="number" step="0.01" min="0" placeholder="0.00"
+                     value="{{ service_form.cost.value|default_if_none:"" }}">
+              {% for err in service_form.cost.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="date-row">
+              <div class="form-group{% if service_form.date.errors %} has-error{% endif %}">
+                <label for="date_display">Date</label>
+                <input id="date_display" type="text" placeholder="dd/mm/yyyy HH:MM" required value="{{ date_display }}">
+                <input id="date" name="date" type="hidden" value="{{ service_form.date.value|default_if_none:"" }}">
+                {% for err in service_form.date.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+              </div>
+              <button type="button" class="btn btn-today" id="add-today">Now</button>
+            </div>
+            <div class="form-group{% if service_form.note.errors %} has-error{% endif %}">
+              <label for="service_note">Note (optional, max 255 chars)</label>
+              <textarea id="service_note" name="note" maxlength="255"
+                        placeholder="Optional details…">{{ service_form.note.value|default_if_none:"" }}</textarea>
+              {% for err in service_form.note.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">Log Service</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Parts status -->
+  <h2>Parts Status</h2>
+
+  <div class="entries-list">
+    {% for s in statuses %}
+      <div class="part-card">
+        <div class="part-head">
+          <div class="entry-name">{{ s.part.name }}</div>
+          <span class="badge badge-{{ s.state }}">{{ s.label }}</span>
+        </div>
+        <div class="entry-meta">
+          <span>🔁 Every {{ s.part.interval_label }}</span>
+          {% if s.last_service %}
+            <span>✅ Last: {{ s.last_service.entry.kilometers|intcomma }} km · {{ s.last_service.entry.date|date:"d/m/Y" }}</span>
+          {% endif %}
+        </div>
+
+        {% if s.km %}
+          <div class="dim">
+            <div class="dim-row">
+              <span>📏 {{ s.km.caption }}</span>
+              <span class="dim-due">→ {{ s.km.due_label }}</span>
+            </div>
+            <div class="progress progress-{{ s.state }}"><span style="width:{{ s.km.progress }}%"></span></div>
+          </div>
+        {% endif %}
+        {% if s.time %}
+          <div class="dim">
+            <div class="dim-row">
+              <span>🗓 {{ s.time.caption }}</span>
+              <span class="dim-due">→ {{ s.time.due_label }}</span>
+            </div>
+            <div class="progress progress-{{ s.state }}"><span style="width:{{ s.time.progress }}%"></span></div>
+          </div>
+        {% endif %}
+        {% if not s.last_service %}
+          <div class="entry-meta"><span>No services logged yet — the first one starts the clock.</span></div>
+        {% endif %}
+
+        <div class="part-actions">
+          <a class="btn btn-neutral" href="{% url 'maintenance' %}?part={{ s.part.pk }}">🔧 Log service</a>
+          <a class="btn btn-neutral" href="{% url 'edit_part' s.part.pk %}">Edit</a>
+          <button type="button" class="btn btn-danger"
+                  onclick="confirmDeletePart({{ s.part.pk }}, '{{ s.part.name|escapejs }}')">Delete</button>
+        </div>
+
+        {% if s.services %}
+          <div class="service-history">
+            {% for svc in s.services %}
+              <div class="service-row">
+                <span>
+                  Service #{{ forloop.counter }} — {{ svc.entry.kilometers|intcomma }} km — {{ svc.entry.date|date:"d/m/Y" }}
+                  {% if svc.entry.reason %}<br>📝 {{ svc.entry.reason|truncatechars:60 }}{% endif %}
+                </span>
+                <button type="button" class="btn btn-danger"
+                        onclick="confirmDeleteService({{ svc.pk }}, '{{ s.part.name|escapejs }}', {{ forloop.counter }})">Delete</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="empty-state">
+        <div class="empty-icon">🔩</div>
+        <p>No parts tracked yet.<br>Add your first part above (e.g. engine oil every 10,000 km or 12 months).</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Delete part confirmation overlay -->
+  <div class="confirm-overlay" id="confirm-part-overlay">
+    <div class="confirm-box">
+      <p>Delete part <strong id="confirm-part-name"></strong>?<br>
+        <small>Its service history will be removed, but the cost entries will be kept.</small>
+      </p>
+      <div class="confirm-buttons">
+        <button type="button" class="btn btn-cancel" onclick="closeConfirm('confirm-part-overlay')">Cancel</button>
+        <form id="delete-part-form" method="post" style="flex:1;display:flex">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-confirm-delete" style="width:100%">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete service confirmation overlay -->
+  <div class="confirm-overlay" id="confirm-service-overlay">
+    <div class="confirm-box">
+      <p>Delete Service #<span id="confirm-service-num"></span> of <strong id="confirm-service-name"></strong>?<br>
+        <small>The linked cost entry will also be deleted.</small>
+      </p>
+      <div class="confirm-buttons">
+        <button type="button" class="btn btn-cancel" onclick="closeConfirm('confirm-service-overlay')">Cancel</button>
+        <form id="delete-service-form" method="post" style="flex:1;display:flex">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-confirm-delete" style="width:100%">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // --- Collapsible forms ---
+  document.querySelectorAll('.toggle-form').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btn.classList.toggle('open');
+      document.getElementById(btn.dataset.target).classList.toggle('open');
+    });
+  });
+
+  // --- Numeric-only inputs ---
+  document.querySelectorAll('input[data-numeric]').forEach(function(el){
+    el.addEventListener('input', function(){
+      this.value = (this.value || '').replace(/\D+/g,'');
+    });
+  });
+
+  // --- Date widget (same dd/mm/yyyy behavior as the entries page) ---
+  const dateDisplay = document.getElementById('date_display');
+  if (dateDisplay) {
+    const dateHidden = document.getElementById('date');
+    const addToday = document.getElementById('add-today');
+    const serviceForm = document.getElementById('service-form');
+
+    function pad(n){return n<10? '0'+n : n}
+
+    addToday.addEventListener('click', function(){
+      const now = new Date();
+      const dd = pad(now.getDate());
+      const mm = pad(now.getMonth()+1);
+      const yyyy = now.getFullYear();
+      const hh = pad(now.getHours());
+      const mi = pad(now.getMinutes());
+      dateDisplay.value = dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + mi;
+      dateHidden.value = yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + mi;
+    });
+
+    serviceForm.addEventListener('submit', function(e){
+      const v = (dateDisplay.value || '').trim();
+      if(!v){ e.preventDefault(); alert('Date is required'); return; }
+      const parts = v.split(' ');
+      const d = parts[0].split('/');
+      if(d.length !== 3){ e.preventDefault(); alert('Invalid date format. Use dd/mm/yyyy'); return; }
+      const day = d[0], month = d[1], year = d[2];
+      const time = (parts[1] || '00:00');
+      if(!/^\d{1,2}:\d{2}$/.test(time)){ e.preventDefault(); alert('Invalid time. Use HH:MM'); return; }
+      dateHidden.value = year + '-' + (month.length===1? '0'+month: month) + '-' + (day.length===1? '0'+day: day) + 'T' + time;
+    });
+  }
+
+  // --- Close confirm overlays on backdrop click ---
+  document.querySelectorAll('.confirm-overlay').forEach(function(overlay){
+    overlay.addEventListener('click', function(e){
+      if (e.target === this) this.classList.remove('show');
+    });
+  });
+});
+
+// --- Delete confirmations ---
+function confirmDeletePart(pk, name){
+  document.getElementById('confirm-part-name').textContent = name;
+  document.getElementById('delete-part-form').action = '/maintenance/part/' + pk + '/delete/';
+  document.getElementById('confirm-part-overlay').classList.add('show');
+}
+function confirmDeleteService(pk, name, num){
+  document.getElementById('confirm-service-name').textContent = name;
+  document.getElementById('confirm-service-num').textContent = num;
+  document.getElementById('delete-service-form').action = '/maintenance/service/' + pk + '/delete/';
+  document.getElementById('confirm-service-overlay').classList.add('show');
+}
+function closeConfirm(id){
+  document.getElementById(id).classList.remove('show');
+}
+</script>
+
+{% endblock %}

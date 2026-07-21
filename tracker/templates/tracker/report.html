@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+  <!-- Header -->
+  <div class="header">
+    <span class="header-icon">📊</span>
+    <h1>Report</h1>
+    <a class="btn btn-nav" href="{% url 'index' %}">← Entries</a>
+    <a class="btn btn-nav" href="{% url 'maintenance' %}">🔧 Parts</a>
+    <form method="post" action="{% url 'logout' %}" class="logout-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-logout">Log out</button>
+    </form>
+  </div>
+
+  <!-- Total spending -->
+  <div class="odo-card">
+    <div class="odo-label">Total Spending</div>
+    <div class="odo-value"><span class="odo-unit">$</span>{{ grand_total|floatformat:"2"|intcomma }}</div>
+  </div>
+
+  <!-- Breakdown -->
+  <h2>Breakdown</h2>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="odo-label">🔧 Services</div>
+      <div class="stat-value">${{ services_total|floatformat:"2"|intcomma }}</div>
+      <div class="stat-hint">
+        {{ services_count }} service{{ services_count|pluralize }} logged
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="odo-label">📝 Entries</div>
+      <div class="stat-value">${{ entries_total|floatformat:"2"|intcomma }}</div>
+      <div class="stat-hint">
+        {{ entries_count }} other entr{{ entries_count|pluralize:"y,ies" }}
+      </div>
+    </div>
+  </div>
+
+  {% if not services_count and not entries_count %}
+    <div class="empty-state">
+      <div class="empty-icon">💸</div>
+      <p>No spending recorded yet.<br>Add entries or log services to see your totals.</p>
+    </div>
+  {% endif %}
+
+{% endblock %}

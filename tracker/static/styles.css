@@ -103,6 +103,24 @@ h2{font-size:1.05rem;font-weight:600;color:var(--text-dim);letter-spacing:.02em;
   content:'• ';
 }
 
+/* ---------- Inline per-field errors (form validation) ---------- */
+.field-error{
+  display:block;
+  margin-top:6px;
+  color:var(--danger);
+  font-size:.78rem;
+  line-height:1.4;
+}
+.form-group.has-error input,
+.form-group.has-error textarea{
+  border-color:var(--danger);
+  background:rgba(255,107,107,.06);
+}
+.form-group.has-error input:focus,
+.form-group.has-error textarea:focus{
+  border-color:var(--danger);
+}
+
 /* ---------- Card / Section ---------- */
 .card{
   background:var(--surface);
@@ -129,6 +147,7 @@ label{
 input[type="text"],
 input[type="number"],
 input[type="password"],
+select,
 textarea{
   width:100%;
   padding:12px 14px;
@@ -141,7 +160,7 @@ textarea{
   outline:none;
   transition:border-color .15s;
 }
-input:focus,textarea:focus{
+input:focus,select:focus,textarea:focus{
   border-color:var(--accent);
 }
 textarea{
@@ -344,13 +363,227 @@ input[type="number"]{-moz-appearance:textfield}
 }
 .btn-confirm-delete:hover{background:var(--danger-hover)}
 
-/* ---------- Logout button ---------- */
+/* ---------- Logout & nav buttons ---------- */
 .logout-form{margin-left:auto}
-.btn-logout{
+.btn-logout,
+.btn-nav{
   background:var(--surface-2);
   color:var(--text-dim);
   border:1px solid var(--border);
   padding:8px 12px;
   font-size:.8rem;
+  text-decoration:none;
 }
-.btn-logout:hover{background:var(--border);color:var(--text)}
+.btn-logout:hover,
+.btn-nav:hover{background:var(--border);color:var(--text)}
+
+/* ---------- Django messages ---------- */
+.messages{
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:16px;
+}
+.msg{
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  font-size:.875rem;
+  line-height:1.5;
+  border:1px solid transparent;
+}
+.msg-success{
+  background:rgba(81,207,102,.12);
+  border-color:rgba(81,207,102,.35);
+  color:var(--success);
+}
+.msg-error,
+.msg-error.error{
+  background:rgba(255,107,107,.12);
+  border-color:rgba(255,107,107,.35);
+  color:var(--danger);
+}
+.msg-info,
+.msg-debug,
+.msg-warning{
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-dim);
+}
+
+/* ---------- Data Management section ---------- */
+.data-section{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:24px;
+}
+.btn-data{
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--border);
+  text-decoration:none;
+}
+.btn-data:hover{
+  background:var(--surface-2);
+  border-color:var(--accent);
+}
+.data-hint{
+  margin-top:4px;
+  font-size:.78rem;
+  line-height:1.5;
+  color:var(--text-dim);
+}
+
+/* File input inside import overlay */
+#backup-file{
+  width:100%;
+  padding:12px 14px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:.9rem;
+}
+#backup-file:focus{border-color:var(--accent);outline:none}
+
+/* ---------- Maintenance page ---------- */
+.part-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  box-shadow:var(--shadow);
+}
+.part-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+/* Status badge (ok / due soon / overdue / no records) */
+.badge{
+  flex-shrink:0;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:.7rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  border:1px solid transparent;
+}
+.badge-ok{
+  background:rgba(81,207,102,.15);
+  border-color:rgba(81,207,102,.35);
+  color:var(--success);
+}
+.badge-due_soon{
+  background:rgba(252,196,25,.12);
+  border-color:rgba(252,196,25,.35);
+  color:var(--warning);
+}
+.badge-overdue{
+  background:rgba(255,107,107,.12);
+  border-color:rgba(255,107,107,.35);
+  color:var(--danger);
+}
+.badge-no_service{
+  background:var(--surface-2);
+  border-color:var(--border);
+  color:var(--text-dim);
+}
+
+/* Interval dimension (km or time): caption row + progress bar */
+.dim{margin-top:10px}
+.dim-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:.8rem;
+  color:var(--text-dim);
+}
+.dim-due{color:var(--text);font-variant-numeric:tabular-nums}
+
+.progress{
+  height:6px;
+  margin-top:6px;
+  background:var(--surface-2);
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress>span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:var(--success);
+}
+.progress-due_soon>span{background:var(--warning)}
+.progress-overdue>span{background:var(--danger)}
+.progress-no_service>span{background:var(--text-dim)}
+
+/* Card action row (log / edit / delete) */
+.part-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.btn-neutral{
+  background:transparent;
+  color:var(--text);
+  padding:6px 10px;
+  font-size:.75rem;
+  border:1px solid var(--border);
+  text-decoration:none;
+}
+.btn-neutral:hover{background:var(--surface-2);border-color:var(--accent)}
+
+/* Numbered service history inside a part card */
+.service-history{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+}
+.service-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.8rem;
+  color:var(--text-dim);
+}
+.service-row>span{flex:1;min-width:0}
+
+/* Full-width button variant (edit-part cancel link) */
+.btn-block{width:100%;margin-top:8px}
+
+/* ---------- Report page ---------- */
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:16px;
+}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  text-align:center;
+  box-shadow:var(--shadow);
+}
+.stat-value{
+  font-size:1.25rem;
+  font-weight:700;
+  color:var(--accent);
+  font-variant-numeric:tabular-nums;
+  margin:4px 0;
+}
+.stat-hint{
+  font-size:.75rem;
+  color:var(--text-dim);
+}

@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +16,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
+    'axes',
     'tracker',
 ]
 
@@ -27,6 +30,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Must be last: wraps the login view to record failures and block locked-out clients.
+    'axes.middleware.AxesMiddleware',
+]
+
+# AxesStandaloneBackend checks the lockout before delegating to ModelBackend.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'odotracker_project.urls'
@@ -76,6 +87,15 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# django-axes: brute-force lockout, on top of the per-IP limit Caddy enforces.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [['username']]
+AXES_RESET_ON_SUCCESS = True
+# W006 nags that 'ip_address' is not in AXES_LOCKOUT_PARAMETERS — intentional:
+# locking per username is the whole point (bots usually rotate IPs, not UAs).
+SILENCED_SYSTEM_CHECKS = ['axes.W006']
+
 if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         origin.strip()
@@ -95,6 +115,8 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'same-origin'
     X_FRAME_OPTIONS = 'DENY'
+    AXES_PROXY_COUNT = 1
+    AXES_META_PRECEDENCE_ORDER = ('HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR')
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

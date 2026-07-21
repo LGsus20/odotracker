@@ -5,6 +5,8 @@
   <div class="header">
     <span class="header-icon">🚗</span>
     <h1>Odotracker</h1>
+    <a class="btn btn-nav" href="{% url 'maintenance' %}">🔧 Parts</a>
+    <a class="btn btn-nav" href="{% url 'report' %}">📊 Report</a>
     <form method="post" action="{% url 'logout' %}" class="logout-form">
       {% csrf_token %}
       <button type="submit" class="btn btn-logout">Log out</button>
@@ -17,54 +19,71 @@
     <div class="odo-value">{{ current_km|default:"0" }}<span class="odo-unit">km</span></div>
   </div>
 
-  <!-- Errors -->
-  {% if errors %}
+  <!-- Non-field errors -->
+  {% if form.non_field_errors %}
     <ul class="errors" id="form-errors">
-      {% for err in errors %}
+      {% for err in form.non_field_errors %}
         <li>{{ err }}</li>
       {% endfor %}
     </ul>
   {% endif %}
 
+  <!-- Django messages (import/export feedback) -->
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="msg msg-{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   <!-- Toggle button for form -->
-  <button type="button" class="toggle-form{% if errors %} open{% endif %}" id="toggle-form">
+  <button type="button" class="toggle-form{% if form.errors %} open{% endif %}" id="toggle-form">
     <span>＋ New Entry</span>
     <span class="chevron">▼</span>
   </button>
 
   <!-- Collapsible form -->
-  <div class="form-wrapper{% if errors %} open{% endif %}" id="form-wrapper">
+  <div class="form-wrapper{% if form.errors %} open{% endif %}" id="form-wrapper">
     <div>
       <div class="card">
-        <form method="post" id="entry-form">
+        <form method="post" id="entry-form" novalidate>
           {% csrf_token %}
-          <div class="form-group">
+          <div class="form-group{% if form.name.errors %} has-error{% endif %}">
             <label for="name">Name</label>
-            <input id="name" name="name" type="text" placeholder="e.g. Oil change" required>
+            <input id="name" name="name" type="text" placeholder="e.g. Oil change"
+                   value="{{ form.name.value|default_if_none:"" }}">
+            {% for err in form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
           </div>
 
-          <div class="form-group">
+          <div class="form-group{% if form.kilometers.errors %} has-error{% endif %}">
             <label for="kilometers">Kilometers</label>
-            <input id="kilometers" name="kilometers" type="text" inputmode="numeric" placeholder="Current odometer reading" required>
+            <input id="kilometers" name="kilometers" type="text" inputmode="numeric"
+                   placeholder="Current odometer reading" value="{{ form.kilometers.value|default_if_none:"" }}">
+            {% for err in form.kilometers.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
           </div>
 
-          <div class="form-group">
+          <div class="form-group{% if form.cost.errors %} has-error{% endif %}">
             <label for="cost">Cost ($)</label>
-            <input id="cost" name="cost" type="number" step="0.01" min="0" placeholder="0.00" required>
+            <input id="cost" name="cost" type="number" step="0.01" min="0" placeholder="0.00"
+                   value="{{ form.cost.value|default_if_none:"" }}">
+            {% for err in form.cost.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
           </div>
 
           <div class="date-row">
-            <div class="form-group">
+            <div class="form-group{% if form.date.errors %} has-error{% endif %}">
               <label for="date_display">Date</label>
-              <input id="date_display" type="text" placeholder="dd/mm/yyyy HH:MM" required>
-              <input id="date" name="date" type="hidden">
+              <input id="date_display" type="text" placeholder="dd/mm/yyyy HH:MM" required value="{{ date_display }}">
+              <input id="date" name="date" type="hidden" value="{{ form.date.value|default_if_none:"" }}">
+              {% for err in form.date.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
             </div>
             <button type="button" class="btn btn-today" id="add-today">Now</button>
           </div>
 
-          <div class="form-group">
+          <div class="form-group{% if form.reason.errors %} has-error{% endif %}">
             <label for="reason">Reason / Notes</label>
-            <textarea id="reason" name="reason" placeholder="Optional details…"></textarea>
+            <textarea id="reason" name="reason" placeholder="Optional details…">{{ form.reason.value|default_if_none:"" }}</textarea>
+            {% for err in form.reason.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
           </div>
 
           <button type="submit" class="btn btn-primary">Save Entry</button>
@@ -104,6 +123,32 @@
     {% endfor %}
   </div>
 
+  <!-- Data Management -->
+  <h2>Data Management</h2>
+  <div class="data-section">
+    <a class="btn btn-data" href="{% url 'export_csv' %}">⬇ Export data as .CSV</a>
+    <a class="btn btn-data" href="{% url 'export_backup' %}">⬇ Backup (Export Database)</a>
+    <button type="button" class="btn btn-data" onclick="openImport()">⬆ Import (Database)</button>
+  </div>
+
+  <!-- Import confirmation overlay -->
+  <div class="confirm-overlay" id="import-overlay">
+    <div class="confirm-box">
+      <form id="import-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p>Import a backup? Maintenance entries with the same ID will be overwritten. Only maintenance data is affected — your login stays unchanged.</p>
+        <div class="form-group">
+          <label for="backup-file">Backup file</label>
+          <input id="backup-file" name="backup_file" type="file" accept=".json,application/json">
+        </div>
+        <div class="confirm-buttons">
+          <button type="button" class="btn btn-cancel" onclick="closeImport()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="width:100%">Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Delete confirmation overlay -->
   <div class="confirm-overlay" id="confirm-overlay">
     <div class="confirm-box">
@@ -120,6 +165,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  const importOverlay = document.getElementById('import-overlay');
+  const importForm = document.getElementById('import-form');
+  if (importOverlay) {
+    importOverlay.addEventListener('click', function(e){
+      if (e.target === this) closeImport();
+    });
+  }
+  // Require a file before allowing import submit.
+  if (importForm) {
+    importForm.addEventListener('submit', function(e){
+      const file = document.getElementById('backup-file');
+      if (!file || !file.files.length) {
+        e.preventDefault();
+        alert('Please choose a .json backup file first.');
+      }
+    });
+  }
   const km = document.getElementById('kilometers');
   const dateDisplay = document.getElementById('date_display');
   const dateHidden = document.getElementById('date');
@@ -180,6 +242,15 @@ function closeConfirm(){
 document.getElementById('confirm-overlay').addEventListener('click', function(e){
   if(e.target === this) closeConfirm();
 });
+
+// --- Import confirmation ---
+function openImport(){
+  document.getElementById('import-form').action = '{% url 'import_backup' %}';
+  document.getElementById('import-overlay').classList.add('show');
+}
+function closeImport(){
+  document.getElementById('import-overlay').classList.remove('show');
+}
 </script>
 
 {% endblock %}
