@@ -15,6 +15,8 @@ COPY . /app/
 RUN chmod +x /app/entrypoint.sh
 
 RUN adduser --disabled-password --gecos "" appuser || true
+RUN mkdir -p /app/staticfiles /app/db_data \
+	&& chown -R appuser:appuser /app/staticfiles /app/db_data
 USER appuser
 
 ENV PORT=8000
