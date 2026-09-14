@@ -17,17 +17,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.caddy
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     env_file:
-      - ./.env.caddy
+      - ./.env.prod
     depends_on:
       - web
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - caddy
     networks:
       - proxy-net
     restart: unless-stopped

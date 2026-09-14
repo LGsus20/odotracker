@@ -1,11 +1,11 @@
 {
-	acme_dns porkbun {
-		api_key {env.PORKBUN_API_KEY}
-		api_secret_key {env.PORKBUN_API_SECRET_KEY}
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
 	}
 }
 
-{$SITE_DOMAIN} {
+http://{$SITE_DOMAIN} {
 	encode zstd gzip
 
 	@admin path /admin /admin/*
@@ -16,7 +16,7 @@
 	handle /login/* {
 		rate_limit {
 			zone login {
-				key {remote_host}
+				key {client_ip}
 				events 5
 				window 1m
 			}
@@ -30,7 +30,7 @@
 				match {
 					method POST
 				}
-				key {remote_host}
+				key {client_ip}
 				events 30
 				window 1m
 			}
