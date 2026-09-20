@@ -39,6 +39,13 @@
             {% for err in part_form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
           </ul>
         {% endif %}
+        <div class="form-group{% if part_form.group_name.errors %} has-error{% endif %}">
+          <label for="part_group_name">Shared maintenance group</label>
+          <input id="part_group_name" name="group_name" type="text" placeholder="e.g. Brake fluid"
+                 value="{{ part_form.group_name.value|default_if_none:"" }}">
+          <small>Use one group for related actions such as Inspection and Replacement.</small>
+          {% for err in part_form.group_name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </div>
         <div class="form-group{% if part_form.name.errors %} has-error{% endif %}">
           <label for="part_name">Part name</label>
           <input id="part_name" name="name" type="text" placeholder="e.g. Air filter"
@@ -84,6 +91,13 @@
                 {% for err in part_form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
               </ul>
             {% endif %}
+            <div class="form-group{% if part_form.group_name.errors %} has-error{% endif %}">
+              <label for="part_group_name">Shared maintenance group</label>
+              <input id="part_group_name" name="group_name" type="text" placeholder="e.g. Brake fluid"
+                     value="{{ part_form.group_name.value|default_if_none:"" }}">
+              <small>Use one group for related actions such as Inspection and Replacement.</small>
+              {% for err in part_form.group_name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
             <div class="form-group{% if part_form.name.errors %} has-error{% endif %}">
               <label for="part_name">Part name</label>
               <input id="part_name" name="name" type="text" placeholder="e.g. Air filter"
@@ -179,7 +193,10 @@
     {% for s in statuses %}
       <div class="part-card">
         <div class="part-head">
-          <div class="entry-name">{{ s.part.name }}</div>
+          <div>
+            {% if s.part.group %}<div class="dim">{{ s.part.group.name }}</div>{% endif %}
+            <div class="entry-name">{{ s.part.name }}</div>
+          </div>
           <span class="badge badge-{{ s.state }}">{{ s.label }}</span>
         </div>
         <div class="entry-meta">

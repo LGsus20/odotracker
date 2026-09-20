@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 
-from .models import MaintenanceEntry, Part
+from .models import MaintenanceEntry, MaintenanceGroup, Part
 
 
 class EntryForm(forms.ModelForm):
@@ -42,10 +42,33 @@ class PartForm(forms.ModelForm):
 
     class Meta:
         model = Part
-        fields = ['name', 'note', 'interval_km', 'interval_months']
+        fields = ['group', 'name', 'note', 'interval_km', 'interval_months']
         widgets = {
             'note': forms.Textarea(attrs={'maxlength': 524}),
         }
+
+    group_name = forms.CharField(
+        required=False,
+        label='Shared maintenance group',
+        help_text='Use the same group for related actions such as inspection and replacement.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.group:
+            self.fields['group_name'].initial = self.instance.group.name
+
+    def clean(self):
+        cleaned_data = super().clean()
+        group_name = cleaned_data.get('group_name', '').strip()
+        group = cleaned_data.get('group')
+        if group_name:
+            cleaned_data['group'] = MaintenanceGroup.objects.get_or_create(
+                name=group_name
+            )[0]
+        elif group:
+            cleaned_data['group'] = group
+        return cleaned_data
 
 
 class ServiceForm(forms.Form):

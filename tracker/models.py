@@ -37,6 +37,17 @@ class MaintenanceEntry(models.Model):
             )
 
 
+class MaintenanceGroup(models.Model):
+    """Shared subject for related maintenance actions."""
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Part(models.Model):
     """A car part tracked on a recurring maintenance interval.
 
@@ -44,6 +55,13 @@ class Part(models.Model):
     soon as EITHER is reached (e.g. air filter: 15,000 km or 12 months).
     """
     name = models.CharField(max_length=200)
+    group = models.ForeignKey(
+        MaintenanceGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='parts',
+    )
     note = models.TextField(max_length=524, blank=True, default='')
     interval_km = models.PositiveIntegerField(
         null=True, blank=True, validators=[MinValueValidator(1)]

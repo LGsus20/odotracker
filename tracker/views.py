@@ -16,7 +16,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 
 from .forms import EntryForm, PartForm, ServiceForm
-from .models import MaintenanceEntry, Part, ServiceRecord
+from .models import MaintenanceEntry, MaintenanceGroup, Part, ServiceRecord
 from .services import build_part_statuses
 
 # Maximum accepted size for an uploaded backup file (10 MB).
@@ -27,6 +27,7 @@ IMPORT_MAX_BYTES = 10 * 1024 * 1024
 # means a crafted (or stale) backup can never change credentials, create
 # superusers, or alter permission tables.
 IMPORT_MODELS = {
+    'tracker.maintenancegroup': MaintenanceGroup,
     'tracker.part': Part,
     'tracker.maintenanceentry': MaintenanceEntry,
     'tracker.servicerecord': ServiceRecord,
@@ -268,6 +269,8 @@ def _import_defaults(label, fields):
     if label == 'tracker.part':
         return {
             'name': fields.get('name', ''),
+            'group_id': fields.get('group'),
+            'note': fields.get('note', ''),
             'interval_km': fields.get('interval_km'),
             'interval_months': fields.get('interval_months'),
         }

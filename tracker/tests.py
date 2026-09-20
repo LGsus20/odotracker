@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import MaintenanceEntry, Part, ServiceRecord
+from .models import MaintenanceEntry, MaintenanceGroup, Part, ServiceRecord
 from .services import (
     DUE_SOON_DAYS,
     DUE_SOON_KM,
@@ -45,6 +45,18 @@ def make_service(part, kilometers, on, **entry_kwargs):
 
 
 class PartModelTests(TestCase):
+    def test_related_actions_can_share_a_group(self):
+        group = MaintenanceGroup.objects.create(name='Brake fluid')
+        inspection = Part.objects.create(
+            name='Inspection', group=group, interval_km=10000, interval_months=6
+        )
+        replacement = Part.objects.create(
+            name='Replacement', group=group, interval_km=40000, interval_months=24
+        )
+
+        self.assertEqual(list(group.parts.order_by('name')), [inspection, replacement])
+        self.assertNotEqual(inspection.interval_km, replacement.interval_km)
+
     def test_requires_at_least_one_interval(self):
         with self.assertRaises(ValidationError):
             Part(name='Oil').full_clean()
@@ -203,6 +215,18 @@ class MaintenanceViewTests(TestCase):
         })
         self.assertRedirects(response, reverse('maintenance'))
         self.assertTrue(Part.objects.filter(name='Brake pads', interval_km=30000).exists())
+
+    def test_add_part_creates_shared_group(self):
+        response = self.client.post(reverse('maintenance'), {
+            'action': 'add_part',
+            'group_name': 'Brake fluid',
+            'name': 'Inspection',
+            'interval_km': '10000',
+            'interval_months': '6',
+        })
+        self.assertRedirects(response, reverse('maintenance'))
+        part = Part.objects.get(name='Inspection')
+        self.assertEqual(part.group.name, 'Brake fluid')
 
     def test_add_part_without_intervals_shows_error(self):
         response = self.client.post(reverse('maintenance'), {
