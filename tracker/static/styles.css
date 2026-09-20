@@ -462,6 +462,18 @@ input[type="number"]{-moz-appearance:textfield}
   justify-content:space-between;
   gap:10px;
 }
+.part-head .entry-name{
+  flex:1;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.part-note{
+  margin-top:8px;
+  color:var(--text-dim);
+  font-size:.85rem;
+  overflow-wrap:anywhere;
+}
 
 /* Status badge (ok / due soon / overdue / no records) */
 .badge{

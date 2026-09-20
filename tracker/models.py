@@ -44,6 +44,7 @@ class Part(models.Model):
     soon as EITHER is reached (e.g. air filter: 15,000 km or 12 months).
     """
     name = models.CharField(max_length=200)
+    note = models.TextField(max_length=524, blank=True, default='')
     interval_km = models.PositiveIntegerField(
         null=True, blank=True, validators=[MinValueValidator(1)]
     )

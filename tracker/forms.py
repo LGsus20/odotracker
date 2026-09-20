@@ -42,7 +42,10 @@ class PartForm(forms.ModelForm):
 
     class Meta:
         model = Part
-        fields = ['name', 'interval_km', 'interval_months']
+        fields = ['name', 'note', 'interval_km', 'interval_months']
+        widgets = {
+            'note': forms.Textarea(attrs={'maxlength': 524}),
+        }
 
 
 class ServiceForm(forms.Form):
@@ -50,11 +53,11 @@ class ServiceForm(forms.Form):
 
     Not a ModelForm: saving creates two objects (the linked MaintenanceEntry
     plus the ServiceRecord) in the view. ``date`` arrives via the hidden ISO
-    input filled by the template's date widget (same pattern as EntryForm);
-    ``note`` feeds the entry's reason and is capped at 255 chars.
+    input filled by the template's date widget (same pattern as EntryForm).
+    ``note`` feeds the entry's reason and is capped at 524 chars.
     """
     part = forms.ModelChoiceField(queryset=Part.objects.all(), empty_label=None)
     kilometers = forms.IntegerField(min_value=0)
     cost = forms.DecimalField(min_value=Decimal('0'), required=False)
     date = forms.DateTimeField()
-    note = forms.CharField(max_length=255, required=False)
+    note = forms.CharField(max_length=524, required=False)

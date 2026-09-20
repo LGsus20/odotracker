@@ -45,6 +45,12 @@
                  value="{{ part_form.name.value|default_if_none:"" }}">
           {% for err in part_form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
         </div>
+        <div class="form-group{% if part_form.note.errors %} has-error{% endif %}">
+          <label for="part_note">Note (optional, max 524 chars)</label>
+          <textarea id="part_note" name="note" maxlength="524"
+                    placeholder="Optional details…">{{ part_form.note.value|default_if_none:"" }}</textarea>
+          {% for err in part_form.note.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </div>
         <div class="form-group{% if part_form.interval_km.errors %} has-error{% endif %}">
           <label for="interval_km">Every … km (optional)</label>
           <input id="interval_km" name="interval_km" type="text" inputmode="numeric" data-numeric
@@ -83,6 +89,12 @@
               <input id="part_name" name="name" type="text" placeholder="e.g. Air filter"
                      value="{{ part_form.name.value|default_if_none:"" }}">
               {% for err in part_form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+            </div>
+            <div class="form-group{% if part_form.note.errors %} has-error{% endif %}">
+              <label for="part_note">Note (optional, max 524 chars)</label>
+              <textarea id="part_note" name="note" maxlength="524"
+                        placeholder="Optional details…">{{ part_form.note.value|default_if_none:"" }}</textarea>
+              {% for err in part_form.note.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
             </div>
             <div class="form-group{% if part_form.interval_km.errors %} has-error{% endif %}">
               <label for="interval_km">Every … km (optional)</label>
@@ -148,8 +160,8 @@
               <button type="button" class="btn btn-today" id="add-today">Now</button>
             </div>
             <div class="form-group{% if service_form.note.errors %} has-error{% endif %}">
-              <label for="service_note">Note (optional, max 255 chars)</label>
-              <textarea id="service_note" name="note" maxlength="255"
+              <label for="service_note">Note (optional, max 524 chars)</label>
+              <textarea id="service_note" name="note" maxlength="524"
                         placeholder="Optional details…">{{ service_form.note.value|default_if_none:"" }}</textarea>
               {% for err in service_form.note.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
             </div>
@@ -176,6 +188,9 @@
             <span>✅ Last: {{ s.last_service.entry.kilometers|intcomma }} km · {{ s.last_service.entry.date|date:"d/m/Y" }}</span>
           {% endif %}
         </div>
+        {% if s.part.note %}
+          <div class="part-note">📝 {{ s.part.note }}</div>
+        {% endif %}
 
         {% if s.km %}
           <div class="dim">
@@ -212,7 +227,7 @@
               <div class="service-row">
                 <span>
                   Service #{{ forloop.counter }} — {{ svc.entry.kilometers|intcomma }} km — {{ svc.entry.date|date:"d/m/Y" }}
-                  {% if svc.entry.reason %}<br>📝 {{ svc.entry.reason|truncatechars:60 }}{% endif %}
+                  {% if svc.entry.reason %}<br>📝 {{ svc.entry.reason }}{% endif %}
                 </span>
                 <button type="button" class="btn btn-danger"
                         onclick="confirmDeleteService({{ svc.pk }}, '{{ s.part.name|escapejs }}', {{ forloop.counter }})">Delete</button>
