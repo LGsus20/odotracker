@@ -15,9 +15,9 @@ from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 
-from .forms import EntryForm, PartForm, ServiceForm
+from .forms import EntryForm, GroupForm, PartForm, ServiceForm
 from .models import MaintenanceEntry, MaintenanceGroup, Part, ServiceRecord
-from .services import build_part_statuses
+from .services import SORT_GROUPS, SORT_URGENCY, build_part_statuses
 
 # Maximum accepted size for an uploaded backup file (10 MB).
 IMPORT_MAX_BYTES = 10 * 1024 * 1024
@@ -103,18 +103,25 @@ def _create_service_record(data):
     return ServiceRecord.objects.create(part=part, entry=entry)
 
 
-def _render_maintenance(request, *, part_form=None, service_form=None, editing_part=None):
+def _render_maintenance(
+    request, *, part_form=None, group_form=None, service_form=None, editing_part=None
+):
     """Render the maintenance page, creating whichever forms are not given.
 
     Bound forms (after a failed validation) are passed in so the user's input
     and errors survive; unbound forms are built here with sensible defaults.
     """
     current_km = _current_km()
-    parts = Part.objects.prefetch_related(
+    sort_mode = request.GET.get('sort')
+    if sort_mode not in {SORT_URGENCY, SORT_GROUPS}:
+        sort_mode = SORT_URGENCY
+    parts = Part.objects.select_related('group').prefetch_related(
         Prefetch('services', queryset=ServiceRecord.objects.select_related('entry'))
     )
     if part_form is None:
         part_form = PartForm(instance=editing_part) if editing_part else PartForm()
+    if group_form is None:
+        group_form = GroupForm()
     if service_form is None:
         initial = {'kilometers': current_km}
         if request.method == 'GET':
@@ -123,13 +130,17 @@ def _render_maintenance(request, *, part_form=None, service_form=None, editing_p
         service_form = ServiceForm(initial=initial)
 
     return render(request, 'tracker/maintenance.html', {
-        'statuses': build_part_statuses(parts, current_km, timezone.localdate()),
+        'statuses': build_part_statuses(
+            parts, current_km, timezone.localdate(), sort_mode=sort_mode
+        ),
         'part_form': part_form,
+        'group_form': group_form,
         'service_form': service_form,
         'editing_part': editing_part,
         'current_km': current_km,
         'date_display': _display_date_from_post(request) if request.method == 'POST' else '',
         'service_open': bool(request.GET.get('part')) or service_form.is_bound,
+        'sort_mode': sort_mode,
     })
 
 
@@ -138,6 +149,13 @@ def maintenance(request):
     """The parts status page; also handles both of its creation forms."""
     if request.method == 'POST':
         action = request.POST.get('action')
+        if action == 'add_group':
+            group_form = GroupForm(request.POST)
+            if group_form.is_valid():
+                group = group_form.save()
+                messages.success(request, f'Group "{group.name}" was created.')
+                return redirect('maintenance')
+            return _render_maintenance(request, group_form=group_form)
         if action == 'add_part':
             part_form = PartForm(request.POST)
             if part_form.is_valid():

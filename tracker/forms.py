@@ -47,28 +47,27 @@ class PartForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'maxlength': 524}),
         }
 
-    group_name = forms.CharField(
-        required=False,
-        label='Shared maintenance group',
-        help_text='Use the same group for related actions such as inspection and replacement.',
-    )
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.group:
-            self.fields['group_name'].initial = self.instance.group.name
+        self.fields['group'].queryset = MaintenanceGroup.objects.order_by('name')
+        self.fields['group'].empty_label = 'No group'
 
-    def clean(self):
-        cleaned_data = super().clean()
-        group_name = cleaned_data.get('group_name', '').strip()
-        group = cleaned_data.get('group')
-        if group_name:
-            cleaned_data['group'] = MaintenanceGroup.objects.get_or_create(
-                name=group_name
-            )[0]
-        elif group:
-            cleaned_data['group'] = group
-        return cleaned_data
+
+class GroupForm(forms.ModelForm):
+    """Create a reusable maintenance group."""
+
+    class Meta:
+        model = MaintenanceGroup
+        fields = ['name']
+
+    def clean_name(self):
+        name = ' '.join(self.cleaned_data['name'].split())
+        existing = MaintenanceGroup.objects.filter(name__iexact=name)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError('A group with this name already exists.')
+        return name
 
 
 class ServiceForm(forms.Form):

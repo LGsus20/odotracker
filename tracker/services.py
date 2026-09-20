@@ -20,6 +20,8 @@ STATE_OK = 'ok'
 STATE_DUE_SOON = 'due_soon'
 STATE_OVERDUE = 'overdue'
 STATE_NO_SERVICE = 'no_service'
+SORT_URGENCY = 'urgency'
+SORT_GROUPS = 'groups'
 
 # Urgency order used to sort the status page.
 _STATE_ORDER = [STATE_OVERDUE, STATE_DUE_SOON, STATE_OK, STATE_NO_SERVICE]
@@ -133,11 +135,28 @@ def part_status(part, services, current_km, today):
     return PartStatus(part, state, last_service, services, km, time)
 
 
-def build_part_statuses(parts, current_km, today):
-    """Statuses for all parts, sorted by urgency (overdue first)."""
+def _urgency_sort_key(status):
+    return _STATE_ORDER.index(status.state), status.part.name.lower()
+
+
+def _group_sort_key(status):
+    group = status.part.group
+    if group:
+        return (
+            0,
+            group.name.lower(),
+            _STATE_ORDER.index(status.state),
+            status.part.name.lower(),
+        )
+    return (1, '', _STATE_ORDER.index(status.state), status.part.name.lower())
+
+
+def build_part_statuses(parts, current_km, today, sort_mode=SORT_URGENCY):
+    """Statuses sorted by urgency or alphabetically by maintenance group."""
     statuses = [
         part_status(part, list(part.services.all()), current_km, today)
         for part in parts
     ]
-    statuses.sort(key=lambda s: (_STATE_ORDER.index(s.state), s.part.name.lower()))
+    sort_key = _group_sort_key if sort_mode == SORT_GROUPS else _urgency_sort_key
+    statuses.sort(key=sort_key)
     return statuses

@@ -9,10 +9,12 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from .forms import GroupForm
 from .models import MaintenanceEntry, MaintenanceGroup, Part, ServiceRecord
 from .services import (
     DUE_SOON_DAYS,
     DUE_SOON_KM,
+    SORT_GROUPS,
     STATE_DUE_SOON,
     STATE_NO_SERVICE,
     STATE_OK,
@@ -56,6 +58,12 @@ class PartModelTests(TestCase):
 
         self.assertEqual(list(group.parts.order_by('name')), [inspection, replacement])
         self.assertNotEqual(inspection.interval_km, replacement.interval_km)
+
+    def test_group_form_rejects_case_insensitive_duplicate(self):
+        MaintenanceGroup.objects.create(name='Brake fluid')
+        form = GroupForm({'name': ' brake FLUID '})
+        self.assertFalse(form.is_valid())
+        self.assertIn('already exists', str(form.errors['name']))
 
     def test_requires_at_least_one_interval(self):
         with self.assertRaises(ValidationError):
@@ -170,6 +178,25 @@ class PartStatusTests(TestCase):
         )
         self.assertEqual(statuses[0].part, overdue_part)
 
+    def test_group_sort_orders_groups_alphabetically_and_parts_by_urgency(self):
+        alpha = MaintenanceGroup.objects.create(name='Alpha')
+        beta = MaintenanceGroup.objects.create(name='Beta')
+        alpha_ok = Part.objects.create(name='Z action', group=alpha, interval_km=100000)
+        alpha_overdue = Part.objects.create(name='A action', group=alpha, interval_km=1000)
+        beta_overdue = Part.objects.create(name='B action', group=beta, interval_km=1000)
+        make_service(alpha_ok, 0, TODAY)
+        make_service(alpha_overdue, 0, TODAY)
+        make_service(beta_overdue, 0, TODAY)
+
+        statuses = build_part_statuses(
+            Part.objects.all(), current_km=5000, today=TODAY, sort_mode=SORT_GROUPS
+        )
+
+        self.assertEqual(
+            [status.part for status in statuses],
+            [alpha_overdue, alpha_ok, beta_overdue, self.part],
+        )
+
 
 class DeletionTests(TestCase):
     def setUp(self):
@@ -206,6 +233,18 @@ class MaintenanceViewTests(TestCase):
         response = self.client.get(reverse('maintenance'))
         self.assertRedirects(response, '/login/?next=/maintenance/')
 
+    def test_maintenance_defaults_to_urgency_sort(self):
+        response = self.client.get(reverse('maintenance'))
+        self.assertEqual(response.context['sort_mode'], 'urgency')
+
+    def test_maintenance_accepts_group_sort(self):
+        response = self.client.get(reverse('maintenance'), {'sort': 'groups'})
+        self.assertEqual(response.context['sort_mode'], 'groups')
+
+    def test_maintenance_rejects_unknown_sort(self):
+        response = self.client.get(reverse('maintenance'), {'sort': 'unknown'})
+        self.assertEqual(response.context['sort_mode'], 'urgency')
+
     def test_add_part(self):
         response = self.client.post(reverse('maintenance'), {
             'action': 'add_part',
@@ -217,9 +256,10 @@ class MaintenanceViewTests(TestCase):
         self.assertTrue(Part.objects.filter(name='Brake pads', interval_km=30000).exists())
 
     def test_add_part_creates_shared_group(self):
+        group = MaintenanceGroup.objects.create(name='Brake fluid')
         response = self.client.post(reverse('maintenance'), {
             'action': 'add_part',
-            'group_name': 'Brake fluid',
+            'group': str(group.pk),
             'name': 'Inspection',
             'interval_km': '10000',
             'interval_months': '6',
@@ -227,6 +267,14 @@ class MaintenanceViewTests(TestCase):
         self.assertRedirects(response, reverse('maintenance'))
         part = Part.objects.get(name='Inspection')
         self.assertEqual(part.group.name, 'Brake fluid')
+
+    def test_add_group(self):
+        response = self.client.post(reverse('maintenance'), {
+            'action': 'add_group',
+            'name': ' Brake fluid ',
+        })
+        self.assertRedirects(response, reverse('maintenance'))
+        self.assertTrue(MaintenanceGroup.objects.filter(name='Brake fluid').exists())
 
     def test_add_part_without_intervals_shows_error(self):
         response = self.client.post(reverse('maintenance'), {
