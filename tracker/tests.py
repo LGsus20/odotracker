@@ -5,9 +5,11 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+import json
 
 from .forms import GroupForm
 from .models import MaintenanceEntry, MaintenanceGroup, Part, ServiceRecord
@@ -382,6 +384,60 @@ class LoginRateLimitTests(TestCase):
             'username': 'tester', 'password': 'x' * 14,
         })
         self.assertEqual(response.status_code, 429)
+
+
+class BackupImportTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='tester', password='x' * 14)
+        self.client.force_login(self.user)
+
+    def test_imports_maintenance_groups_and_related_records(self):
+        backup = [
+            {
+                'model': 'tracker.maintenancegroup',
+                'pk': 7,
+                'fields': {'name': 'Engine'},
+            },
+            {
+                'model': 'tracker.part',
+                'pk': 8,
+                'fields': {
+                    'name': 'Oil',
+                    'group': 7,
+                    'note': '',
+                    'interval_km': 10000,
+                    'interval_months': None,
+                },
+            },
+            {
+                'model': 'tracker.maintenanceentry',
+                'pk': 9,
+                'fields': {
+                    'name': 'Oil',
+                    'kilometers': 1000,
+                    'cost': '25.00',
+                    'date': '2026-07-20T12:00:00Z',
+                    'reason': 'Initial service',
+                },
+            },
+            {
+                'model': 'tracker.servicerecord',
+                'pk': 10,
+                'fields': {'part': 8, 'entry': 9},
+            },
+        ]
+        upload = SimpleUploadedFile(
+            'backup.json', json.dumps(backup).encode('utf-8'), content_type='application/json'
+        )
+
+        response = self.client.post(reverse('import_backup'), {'backup_file': upload})
+
+        self.assertRedirects(response, reverse('index'))
+        group = MaintenanceGroup.objects.get(pk=7)
+        part = Part.objects.get(pk=8)
+        self.assertEqual(group.name, 'Engine')
+        self.assertEqual(part.group, group)
+        self.assertEqual(ServiceRecord.objects.get(pk=10).entry_id, 9)
 
 
 class ReportViewTests(TestCase):

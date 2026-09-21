@@ -4,10 +4,22 @@ from django.db import models
 
 
 class MaintenanceEntry(models.Model):
+    CATEGORY_FUEL = 'fuel'
+    CATEGORY_CHOICES = [
+        (CATEGORY_FUEL, 'Fuel'),
+    ]
+
     name = models.CharField(max_length=200)
     kilometers = models.PositiveIntegerField()
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateTimeField()
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        null=True,
+        blank=True,
+        default=None,
+    )
     reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -16,7 +16,7 @@ class EntryForm(forms.ModelForm):
 
     class Meta:
         model = MaintenanceEntry
-        fields = ['name', 'kilometers', 'cost', 'date', 'reason']
+        fields = ['name', 'kilometers', 'cost', 'category', 'date', 'reason']
         widgets = {
             'kilometers': forms.NumberInput(attrs={'inputmode': 'numeric'}),
             'cost': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),

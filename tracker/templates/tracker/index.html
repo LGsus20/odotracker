@@ -70,6 +70,12 @@
             {% for err in form.cost.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
           </div>
 
+          <div class="form-group{% if form.category.errors %} has-error{% endif %}">
+            <label for="id_category">Category (optional)</label>
+            {{ form.category }}
+            {% for err in form.category.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+          </div>
+
           <div class="date-row">
             <div class="form-group{% if form.date.errors %} has-error{% endif %}">
               <label for="date_display">Date</label>
@@ -107,7 +113,7 @@
           </div>
           {% if e.reason %}
             <div class="entry-meta" style="margin-top:2px">
-              <span>📝 {{ e.reason|truncatewords:12 }}</span>
+              <span>📝 {{ e.reason }}</span>
             </div>
           {% endif %}
         </div>

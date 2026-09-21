@@ -31,15 +31,34 @@
       </div>
     </div>
     <div class="stat-card">
-      <div class="odo-label">📝 Entries</div>
+      <div class="odo-label">📝 Uncategorized</div>
       <div class="stat-value">${{ entries_total|floatformat:"2"|intcomma }}</div>
       <div class="stat-hint">
-        {{ entries_count }} other entr{{ entries_count|pluralize:"y,ies" }}
+        {{ entries_count }} uncategorized entr{{ entries_count|pluralize:"y,ies" }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="odo-label">⛽ Fuel</div>
+      <div class="stat-value">${{ fuel_total|floatformat:"2"|intcomma }}</div>
+      <div class="stat-hint">
+        {{ fuel_count }} fuel entr{{ fuel_count|pluralize:"y,ies" }}
       </div>
     </div>
   </div>
 
-  {% if not services_count and not entries_count %}
+  {% if group_breakdown %}
+    <h2>Maintenance Groups</h2>
+    <div class="report-breakdown">
+      {% for group in group_breakdown %}
+        <div class="report-breakdown-row">
+          <span>{{ group.name }}</span>
+          <span>{{ group.count }} service{{ group.count|pluralize }} · ${{ group.total|floatformat:"2"|intcomma }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not services_count and not entries_count and not fuel_count %}
     <div class="empty-state">
       <div class="empty-icon">💸</div>
       <p>No spending recorded yet.<br>Add entries or log services to see your totals.</p>

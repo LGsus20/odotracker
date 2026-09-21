@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import transaction
-from django.db.models import Prefetch, Sum
+from django.db.models import Count, Prefetch, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -209,17 +209,38 @@ def delete_service(request, pk):
 
 @login_required
 def report(request):
-    """Spending overview: logged services (part-linked entries) vs. the rest."""
+    """Spending overview grouped by maintenance group and entry category."""
     entries = MaintenanceEntry.objects.all()
     service_entries = entries.filter(servicerecord__isnull=False)
-    other_entries = entries.filter(servicerecord__isnull=True)
+    fuel_entries = entries.filter(
+        servicerecord__isnull=True,
+        category=MaintenanceEntry.CATEGORY_FUEL,
+    )
+    other_entries = entries.filter(servicerecord__isnull=True, category__isnull=True)
     services_total = service_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
+    fuel_total = fuel_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
     entries_total = other_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
+    group_rows = service_entries.values(
+        'servicerecord__part__group__name'
+    ).annotate(total=Sum('cost'), count=Count('pk')).order_by(
+        'servicerecord__part__group__name'
+    )
+    group_breakdown = [
+        {
+            'name': row['servicerecord__part__group__name'] or 'Ungrouped services',
+            'total': row['total'],
+            'count': row['count'],
+        }
+        for row in group_rows
+    ]
 
     return render(request, 'tracker/report.html', {
-        'grand_total': services_total + entries_total,
+        'grand_total': services_total + fuel_total + entries_total,
         'services_total': services_total,
         'services_count': service_entries.count(),
+        'group_breakdown': group_breakdown,
+        'fuel_total': fuel_total,
+        'fuel_count': fuel_entries.count(),
         'entries_total': entries_total,
         'entries_count': other_entries.count(),
     })
@@ -284,6 +305,10 @@ def _import_sort_key(obj):
 
 def _import_defaults(label, fields):
     """Map a fixture's fields to model defaults for update_or_create."""
+    if label == 'tracker.maintenancegroup':
+        return {
+            'name': fields.get('name', ''),
+        }
     if label == 'tracker.part':
         return {
             'name': fields.get('name', ''),
