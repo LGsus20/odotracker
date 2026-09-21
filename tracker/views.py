@@ -212,14 +212,32 @@ def report(request):
     """Spending overview grouped by maintenance group and entry category."""
     entries = MaintenanceEntry.objects.all()
     service_entries = entries.filter(servicerecord__isnull=False)
-    fuel_entries = entries.filter(
-        servicerecord__isnull=True,
-        category=MaintenanceEntry.CATEGORY_FUEL,
-    )
     other_entries = entries.filter(servicerecord__isnull=True, category__isnull=True)
+    category_rows = entries.filter(
+        servicerecord__isnull=True,
+        category__isnull=False,
+    ).values('category').annotate(total=Sum('cost'), count=Count('pk'))
+    category_totals = {
+        row['category']: {
+            'total': row['total'] or Decimal('0'),
+            'count': row['count'],
+        }
+        for row in category_rows
+    }
+    category_breakdown = [
+        {
+            'key': key,
+            'label': label,
+            'total': category_totals.get(key, {}).get('total', Decimal('0')),
+            'count': category_totals.get(key, {}).get('count', 0),
+        }
+        for key, label in MaintenanceEntry.CATEGORY_CHOICES
+    ]
     services_total = service_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
-    fuel_total = fuel_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
     entries_total = other_entries.aggregate(total=Sum('cost'))['total'] or Decimal('0')
+    categorized_total = sum((row['total'] for row in category_breakdown), Decimal('0'))
+    categorized_count = sum(row['count'] for row in category_breakdown)
+    fuel_row = category_totals.get(MaintenanceEntry.CATEGORY_FUEL, {})
     group_rows = service_entries.values(
         'servicerecord__part__group__name'
     ).annotate(total=Sum('cost'), count=Count('pk')).order_by(
@@ -235,12 +253,14 @@ def report(request):
     ]
 
     return render(request, 'tracker/report.html', {
-        'grand_total': services_total + fuel_total + entries_total,
+        'grand_total': services_total + categorized_total + entries_total,
         'services_total': services_total,
         'services_count': service_entries.count(),
+        'category_breakdown': category_breakdown,
+        'category_count': categorized_count,
+        'fuel_total': fuel_row.get('total', Decimal('0')),
+        'fuel_count': fuel_row.get('count', 0),
         'group_breakdown': group_breakdown,
-        'fuel_total': fuel_total,
-        'fuel_count': fuel_entries.count(),
         'entries_total': entries_total,
         'entries_count': other_entries.count(),
     })

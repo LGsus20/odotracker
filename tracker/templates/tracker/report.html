@@ -30,18 +30,20 @@
         {{ services_count }} service{{ services_count|pluralize }} logged
       </div>
     </div>
+    {% for category in category_breakdown %}
+      <div class="stat-card">
+        <div class="odo-label">{{ category.label }}</div>
+        <div class="stat-value">${{ category.total|floatformat:"2"|intcomma }}</div>
+        <div class="stat-hint">
+          {{ category.count }} entr{{ category.count|pluralize:"y,ies" }}
+        </div>
+      </div>
+    {% endfor %}
     <div class="stat-card">
       <div class="odo-label">📝 Uncategorized</div>
       <div class="stat-value">${{ entries_total|floatformat:"2"|intcomma }}</div>
       <div class="stat-hint">
         {{ entries_count }} uncategorized entr{{ entries_count|pluralize:"y,ies" }}
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="odo-label">⛽ Fuel</div>
-      <div class="stat-value">${{ fuel_total|floatformat:"2"|intcomma }}</div>
-      <div class="stat-hint">
-        {{ fuel_count }} fuel entr{{ fuel_count|pluralize:"y,ies" }}
       </div>
     </div>
   </div>
@@ -58,7 +60,7 @@
     </div>
   {% endif %}
 
-  {% if not services_count and not entries_count and not fuel_count %}
+  {% if not services_count and not entries_count and not category_count %}
     <div class="empty-state">
       <div class="empty-icon">💸</div>
       <p>No spending recorded yet.<br>Add entries or log services to see your totals.</p>

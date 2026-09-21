@@ -465,6 +465,26 @@ class ReportViewTests(TestCase):
         self.assertEqual(ctx['entries_total'], Decimal('80.00'))
         self.assertEqual(ctx['entries_count'], 2)
 
+    def test_totals_include_all_entry_categories(self):
+        make_entry(21100, TODAY, name='Credit payment', cost='300.00')
+        make_entry(21155, TODAY, name='Registration', cost='75.00')
+        MaintenanceEntry.objects.filter(name='Credit payment').update(
+            category=MaintenanceEntry.CATEGORY_CREDIT
+        )
+        MaintenanceEntry.objects.filter(name='Registration').update(
+            category=MaintenanceEntry.CATEGORY_PAPERWORK
+        )
+
+        response = self.client.get(reverse('report'))
+
+        categories = {
+            row['key']: (row['total'], row['count'])
+            for row in response.context['category_breakdown']
+        }
+        self.assertEqual(categories[MaintenanceEntry.CATEGORY_CREDIT], (Decimal('300.00'), 1))
+        self.assertEqual(categories[MaintenanceEntry.CATEGORY_PAPERWORK], (Decimal('75.00'), 1))
+        self.assertEqual(response.context['grand_total'], Decimal('375.00'))
+
     def test_empty_state(self):
         response = self.client.get(reverse('report'))
         self.assertEqual(response.status_code, 200)

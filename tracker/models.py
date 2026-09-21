@@ -5,8 +5,12 @@ from django.db import models
 
 class MaintenanceEntry(models.Model):
     CATEGORY_FUEL = 'fuel'
+    CATEGORY_CREDIT = 'credit'
+    CATEGORY_PAPERWORK = 'paperwork'
     CATEGORY_CHOICES = [
         (CATEGORY_FUEL, 'Fuel'),
+        (CATEGORY_CREDIT, 'Credit payments'),
+        (CATEGORY_PAPERWORK, 'Vehicle Paperwork'),
     ]
 
     name = models.CharField(max_length=200)
