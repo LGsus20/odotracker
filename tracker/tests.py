@@ -417,6 +417,7 @@ class BackupImportTests(TestCase):
                     'kilometers': 1000,
                     'cost': '25.00',
                     'date': '2026-07-20T12:00:00Z',
+                    'category': MaintenanceEntry.CATEGORY_CREDIT,
                     'reason': 'Initial service',
                 },
             },
@@ -437,7 +438,29 @@ class BackupImportTests(TestCase):
         part = Part.objects.get(pk=8)
         self.assertEqual(group.name, 'Engine')
         self.assertEqual(part.group, group)
+        self.assertEqual(
+            MaintenanceEntry.objects.get(pk=9).category,
+            MaintenanceEntry.CATEGORY_CREDIT,
+        )
         self.assertEqual(ServiceRecord.objects.get(pk=10).entry_id, 9)
+
+    def test_export_backup_includes_entry_categories(self):
+        entry = make_entry(1000, name='Fuel', cost='25.00')
+        entry.category = MaintenanceEntry.CATEGORY_FUEL
+        entry.save()
+
+        response = self.client.get(reverse('export_backup'))
+
+        self.assertEqual(response.status_code, 200)
+        backup = json.loads(response.content)
+        exported_entry = next(
+            obj for obj in backup
+            if obj['model'] == 'tracker.maintenanceentry' and obj['pk'] == entry.pk
+        )
+        self.assertEqual(
+            exported_entry['fields']['category'],
+            MaintenanceEntry.CATEGORY_FUEL,
+        )
 
 
 class ReportViewTests(TestCase):

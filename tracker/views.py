@@ -343,6 +343,7 @@ def _import_defaults(label, fields):
             'kilometers': fields.get('kilometers', 0),
             'cost': fields.get('cost', 0),
             'date': fields.get('date'),
+            'category': fields.get('category'),
             'reason': fields.get('reason', ''),
         }
     # tracker.servicerecord
