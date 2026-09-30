@@ -10,7 +10,6 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')]
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -20,6 +19,10 @@ INSTALLED_APPS = [
     'axes',
     'tracker',
 ]
+
+# Keep the admin available locally, but don't load it in production.
+if DEBUG:
+    INSTALLED_APPS.insert(0, 'django.contrib.admin')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
